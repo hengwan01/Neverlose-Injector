@@ -35,6 +35,8 @@ public:
     int  Height() const { return height_; }
     unsigned Dpi() const { return dpi_; }
     bool IsDragging() const { return dragging_; }
+    // 窗口已被排除在屏幕捕获之外，桌面截图不会把自己的画面拍进去。
+    bool CaptureExcluded() const { return capture_excluded_; }
 
     void BeginDrag();
     void DragTo();
@@ -51,6 +53,7 @@ private:
     bool dragging_ = false;
     bool backdrop_requested_ = false;
     bool backdrop_enabled_ = false;
+    bool capture_excluded_ = false;
     unsigned char layered_alpha_ = 0;
     POINT drag_cursor_origin_ = {};
     POINT drag_window_origin_ = {};

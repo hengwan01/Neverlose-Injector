@@ -4,6 +4,7 @@
 #include "app_window.h"
 #include "common.h"
 #include "data_store.h"
+#include "desktop_blur.h"
 #include "gfx_blur.h"
 #include "profile.h"
 #include "runtime.h"
@@ -85,6 +86,7 @@ private:
     ui::SettingsState settings_;
     ui::SettingsActions settings_actions_;
     gfx::Blur blur_;
+    gfx::DesktopBlur desktop_blur_;
 
     Profile profile_;
     data::CheatStore store_;

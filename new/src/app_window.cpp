@@ -26,6 +26,9 @@
 #ifndef DWMSBT_TRANSIENTWINDOW
 #define DWMSBT_TRANSIENTWINDOW 3
 #endif
+#ifndef WDA_EXCLUDEFROMCAPTURE
+#define WDA_EXCLUDEFROMCAPTURE 0x00000011
+#endif
 
 namespace nl {
 
@@ -83,6 +86,9 @@ bool AppWindow::Create(HINSTANCE hInstance, int width, int height, AppWindowHost
     dpi_ = GetDpiForWindow(hwnd_);
     if (!dpi_) dpi_ = 96;
 
+    // 自绘桌面模糊需要截取窗口背后的画面，先把自身排除在捕获之外。
+    capture_excluded_ = SetWindowDisplayAffinity(hwnd_, WDA_EXCLUDEFROMCAPTURE) != 0;
+
     SetLayeredWindowAttributes(hwnd_, 0, 0, LWA_ALPHA);
     layered_alpha_ = 0;
     return true;
@@ -96,7 +102,10 @@ bool AppWindow::SetBackdropEnabled(bool enabled) {
 
     BOOL dark = TRUE;
     DwmSetWindowAttribute(hwnd_, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
-    int corner = DWMWCP_ROUND;
+    // 系统亚克力/背景材质由 DWM 按窗口矩形和自己的圆角（约 8px）绘制，无法跟随
+    // 面板的 17px 圆角，四个角会露出一块圆角值不同的毛玻璃。因此不再申请系统模糊，
+    // 窗口圆角完全由面板填充 + 窗口裁剪决定。
+    int corner = DWMWCP_DONOTROUND;
     DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE, &corner, sizeof(corner));
     MARGINS margins = {};
     DwmExtendFrameIntoClientArea(hwnd_, &margins);
@@ -109,47 +118,13 @@ bool AppWindow::SetBackdropEnabled(bool enabled) {
         if (GetWindowRgn(hwnd_, rgn) != ERROR) {
             DWM_BLURBEHIND bb = {};
             bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
-            bb.fEnable = enabled;
+            bb.fEnable = FALSE;
             bb.hRgnBlur = rgn;
             DwmEnableBlurBehindWindow(hwnd_, &bb);
         }
         DeleteObject(rgn);
     }
-
-    struct AccentPolicy {
-        DWORD state;
-        DWORD flags;
-        DWORD color;
-        DWORD animation;
-    };
-    struct WindowCompositionAttribData {
-        UINT attrib;
-        PVOID data;
-        SIZE_T size;
-    };
-    using SetWindowCompositionAttributeFn =
-        BOOL(WINAPI*)(HWND, WindowCompositionAttribData*);
-
-    AccentPolicy accent = {};
-    accent.state = enabled ? 3 : 0;
-    WindowCompositionAttribData data = {};
-    data.attrib = 19;
-    data.data = &accent;
-    data.size = sizeof(accent);
-
-    HMODULE user32 = GetModuleHandleW(L"user32.dll");
-    auto set_composition = reinterpret_cast<SetWindowCompositionAttributeFn>(
-        user32 ? GetProcAddress(user32, "SetWindowCompositionAttribute") : nullptr);
-    if (set_composition && set_composition(hwnd_, &data)) {
-        backdrop_enabled_ = enabled;
-        return backdrop_enabled_;
-    }
-
-    int backdrop = enabled ? DWMSBT_TRANSIENTWINDOW : DWMSBT_NONE;
-    if (SUCCEEDED(DwmSetWindowAttribute(hwnd_, DWMWA_SYSTEMBACKDROP_TYPE,
-                                       &backdrop, sizeof(backdrop))))
-        backdrop_enabled_ = enabled;
-    return backdrop_enabled_;
+    return false;
 }
 
 void AppWindow::ApplyRoundRegion(int outer_width, int outer_height,

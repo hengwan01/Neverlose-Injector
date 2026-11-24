@@ -196,6 +196,13 @@ void DrawSplash(const Theme& theme, float time, float opacity) {
     const ImU32 background_color = ImGui::GetColorU32(ImVec4(
         0.145f, 0.153f, 0.212f,
         (shell::GlassEnabled ? 0.5f : 1.0f) * opacity));
+    if (shell::GlassEnabled && shell::BackdropTexture != 0) {
+        draw_list->AddImageRounded(shell::BackdropTexture, window_pos, window_max,
+                                   ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f),
+                                   ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f,
+                                                             opacity)),
+                                   24.0f, 0);
+    }
     draw_list->AddRectFilled(window_pos, window_max, background_color,
                              24.0f, 0);
 

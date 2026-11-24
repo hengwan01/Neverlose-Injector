@@ -84,8 +84,8 @@ void DrawSettings(Theme& theme, UiState& state, SettingsState& settings,
         const ImVec2 max(pos.x + window_size.x, pos.y + window_size.y);
 
         draw->PushClipRect(ImVec2(0.0f, 0.0f), ImVec2(screen_w, screen_h), false);
-        draw->AddRectFilled(At(pos, -3.0f, 3.0f), At(max, 3.0f, 6.0f),
-                            Color(0.0f, 0.0f, 0.0f, 0.2f), 18.0f, 0);
+        draw->AddRectFilled(At(pos, -3.0f, -3.0f), At(max, 3.0f, 3.0f),
+                            Color(0.0f, 0.0f, 0.0f, 0.2f), 19.0f, 0);
         if (QueueBlurCapture(blur, draw, !settings.blur_captured)) {
             BlitBlurSolid(blur, draw, pos.x, pos.y, max.x, max.y, 1.0f,
                           screen_w, screen_h, 16.0f);
@@ -163,7 +163,28 @@ void DrawSettings(Theme& theme, UiState& state, SettingsState& settings,
         ImGui::SameLine(0.0f, -1.0f);
         ImGui::TextDisabled("%s", i18n::T("0 = Lifetime"));
 
-        ImGui::SetCursorPosY(245.0f);
+        ImGui::SetCursorPosY(200.0f);
+        ImGui::TextUnformatted(i18n::T("Appearance"));
+        ImGui::SetNextItemWidth(160.0f);
+        if (ImGui::BeginCombo("##appearance",
+                              settings.draft.appearance == 1
+                                  ? i18n::T("Liquid Glass")
+                                  : (settings.draft.appearance == 2
+                                         ? i18n::T("Solid")
+                                         : i18n::T("Blur")))) {
+            if (ImGui::Selectable(i18n::T("Blur"),
+                                  settings.draft.appearance == 0))
+                settings.draft.appearance = 0;
+            if (ImGui::Selectable(i18n::T("Liquid Glass"),
+                                  settings.draft.appearance == 1))
+                settings.draft.appearance = 1;
+            if (ImGui::Selectable(i18n::T("Solid"),
+                                  settings.draft.appearance == 2))
+                settings.draft.appearance = 2;
+            ImGui::EndCombo();
+        }
+
+        ImGui::SetCursorPosY(262.0f);
         ImGui::PushFont(theme.font_small);
         ImGui::PushTextWrapPos(425.0f);
         if (!settings.error.empty()) {

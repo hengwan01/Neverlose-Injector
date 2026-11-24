@@ -107,10 +107,10 @@ void DrawGameModal(Theme& theme, UiState& state, const UiGpuResources& gpu,
     dl->AddRectFilled(origin, header_max,
                       ImGui::GetColorU32(ImVec4(0.11f, 0.11f, 0.15f,
                                                 header_fill_alpha)),
-                      12.0f, 0);
+                      17.0f, 0);
     dl->AddRect(origin, header_max,
                 ImGui::GetColorU32(ImVec4(0.22f, 0.32f, 0.53f, 0.55f * alpha)),
-                12.0f, 0, 1.1f);
+                17.0f, 0, 1.1f);
 
     const ImU32 blue = ImGui::GetColorU32(ImVec4(0.255f, 0.455f, 0.985f, alpha));
     const ImVec2 info_center(origin.x + 22.0f, origin.y + 21.0f);
@@ -252,7 +252,8 @@ void DrawGameModal(Theme& theme, UiState& state, const UiGpuResources& gpu,
     ImGui::BeginDisabled(true);
     ImGui::InvisibleButton("##UnavailableHardware", hardware_size, 0);
     ImGui::EndDisabled();
-    const bool hardware_hovered = ImGui::IsItemHovered(0);
+    const bool hardware_hovered =
+        ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled);
     float hardware_alpha = 0.45f * alpha * (hardware_hovered ? 1.0f : 0.95f);
     if (shell::GlassEnabled)
         hardware_alpha *= 0.74f;
@@ -262,9 +263,11 @@ void DrawGameModal(Theme& theme, UiState& state, const UiGpuResources& gpu,
                       ImGui::GetColorU32(ImVec4(0.12f, 0.12f, 0.15f,
                                                 hardware_alpha)),
                       11.0f, 0);
+    const ImVec4 hardware_icon_color =
+        hardware_hovered ? ImVec4(1.0f, 1.0f, 1.0f, alpha)
+                         : ImVec4(0.56f, 0.57f, 0.65f, 0.38f * alpha);
     shell::Computer(dl, ImVec2(hardware_pos.x + 19.0f, hardware_pos.y + 19.0f),
-                    ImGui::GetColorU32(ImVec4(0.56f, 0.57f, 0.65f,
-                                              0.38f * alpha)));
+                    ImGui::GetColorU32(hardware_icon_color));
 
     if (modal.branch_alpha > 0.01f) {
         const float choice_alpha = alpha * modal.branch_alpha;
@@ -513,11 +516,13 @@ void DrawGameModal(Theme& theme, UiState& state, const UiGpuResources& gpu,
     ImDrawList* log_dl = ImGui::GetWindowDrawList();
     const ImVec2 changelog_max(changelog_pos.x + changelog_size.x,
                                changelog_pos.y + changelog_size.y);
-    log_dl->AddRectFilled(ImVec2(changelog_pos.x - 4.0f, changelog_pos.y + 3.0f),
-                          ImVec2(changelog_max.x + 4.0f, changelog_max.y + 6.0f),
+    // 阴影按设计要溢出面板边界，必须放开窗口方角裁剪，否则会在圆角处被切成硬边。
+    log_dl->PushClipRect(ImVec2(0.0f, 0.0f), ImVec2(screen_w, screen_h), false);
+    log_dl->AddRectFilled(ImVec2(changelog_pos.x - 4.0f, changelog_pos.y - 4.0f),
+                          ImVec2(changelog_max.x + 4.0f, changelog_max.y + 4.0f),
                           ImGui::GetColorU32(ImVec4(0.0f, 0.0f, 0.0f,
                                                     0.28f * modal.changelog_alpha)),
-                          18.0f, 0);
+                          19.0f, 0);
     const float log_fill = (shell::GlassEnabled ? 0.95f : 1.0f) *
                            modal.changelog_alpha;
     log_dl->AddRectFilled(changelog_pos, changelog_max,
@@ -527,6 +532,7 @@ void DrawGameModal(Theme& theme, UiState& state, const UiGpuResources& gpu,
                     ImGui::GetColorU32(ImVec4(0.6f, 0.63f, 0.75f,
                                               0.18f * modal.changelog_alpha)),
                     15.0f, 0, 1.0f);
+    log_dl->PopClipRect();
     log_dl->AddText(theme.font_semibold, 19.0f,
                     ImVec2(changelog_pos.x + 19.0f, changelog_pos.y + 16.0f),
                     TextColor(theme, modal.changelog_alpha), "Latest update");

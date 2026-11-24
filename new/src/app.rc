@@ -1,0 +1,2 @@
+// 应用图标：编号 201 与 AppWindow::Create 里的 LoadImageW(MAKEINTRESOURCEW(201)) 对应。
+201 ICON "app.ico"

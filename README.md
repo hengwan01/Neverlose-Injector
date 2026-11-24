@@ -34,9 +34,10 @@ dotnet publish -c Release -r win-x64 --self-contained true `
 
 ## new/ — 原生重建版
 
-按原版二进制反汇编证据逐项重建的原生加载器：DirectComposition 圆角/透明度、DWM 毛玻璃、ImGui 窗口阴影图集、原版图标与动画曲线均以原版常量为准。
+按原版二进制反汇编证据逐项重建的原生加载器：DirectComposition 圆角/透明度、自绘桌面毛玻璃、ImGui 窗口阴影图集、原版图标与动画曲线均以原版常量为准。
 
 - **渲染**：DirectX 11 + Dear ImGui 1.91.9 WIP，WIC 纹理加载，DirectComposition 合成
+- **外观**：设置页可选 **模糊 / 液体玻璃 / 纯色**；毛玻璃由 DXGI Desktop Duplication 抓取窗口背后的桌面，在 GPU 上降采样 + 两遍可分离高斯完成；液体玻璃额外做圆角折射、色散与边缘高光
 - **页面**：启动 / 连接、Dashboard、游戏启动弹窗、分支与更新日志、设置页
 - **默认配置**：昵称 `Awa Subaru`，默认头像为 `new/assets/default_avatar.jpg`（由 `test.jpg` 缩放压缩得到）
 - **注入边界**：`new/src/inject_boundary.cpp` 保持桩实现，不执行跨进程注入
@@ -79,6 +80,27 @@ Neverlose-Injector/
 ├── LICENSE
 └── README.md
 ```
+
+---
+
+## 更新记录
+
+### 2026-11-24 — new/ 原生版：GPU 毛玻璃 + 液体玻璃
+
+**新增**
+
+- **桌面毛玻璃改为 GPU 实现**：用 DXGI Desktop Duplication 抓取窗口背后的整块桌面帧 → 1/6 降采样 → 两遍可分离高斯模糊，替换原来的系统亚克力 / GDI 截屏 + CPU 模糊
+- **新增「液体玻璃」外观**：移植 [imgui-liquid-glass](https://github.com/SoyBeanMilkx/imgui-liquid-glass) 的着色器算法到 HLSL（圆角矩形 SDF、边缘折射位移、七点色散、边缘内阴影/辉光/高光），按窗口原始分辨率合成；同时采样原始桌面帧与模糊帧混合，保留边缘折射细节
+- **设置页外观三选一**：模糊 / 液体玻璃 / 纯色，默认液体玻璃，保存后立即生效；旧配置（`solid_appearance`）自动换算，无需手动修改
+- **exe 图标**：用 `assets/neverlose_logo.png` 生成资源（`src/app.rc` + `src/app.ico`），编译出的 exe 在资源管理器和任务栏都有图标
+
+**修复**
+
+- **修复开启模糊后界面变纯色 / 全黑**：D3D11 中同一张纹理仍绑为渲染目标时再绑它的 SRV 会被静默丢弃，导致采样全 0；改为先切渲染目标再绑 SRV
+- **修复拖动窗口时背景错位、拖影**：改为缓存整帧桌面画面，窗口移动时从同一帧按新矩形重新取样，不必等下一帧截屏
+- **修复模糊导致的卡顿**：采集与模糊全部搬到 GPU，采集用 0 超时非阻塞调用，桌面画面无变化时直接复用上一帧结果
+- **修复切换外观后仍显示上一种效果**：切换时强制重新合成，不再复用上一次的结果纹理
+- **修复小窗口下玻璃边缘发虚**：合成分辨率从 1/6 提升到窗口原始分辨率，并按像素覆盖率做边缘抗锯齿
 
 ---
 

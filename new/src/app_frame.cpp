@@ -552,6 +552,7 @@ bool AppFrame::InitBlurAndTextures(AppDevice& device) {
     }
     gpu_.reserved_038 = static_cast<std::uint64_t>(
         reinterpret_cast<std::uintptr_t>(&blur_));
+    desktop_blur_.Init(device.Device(), device.Context());
     ui::LoadTextures(gpu_, device.Device(), device.Context());
     ReloadAvatar();
     return true;
@@ -937,9 +938,28 @@ bool AppFrame::TickFrame(AppWindow& window, AppDevice& device, bool& running) {
     else
         window.SetLayeredAlpha(static_cast<unsigned char>(anim_.window_opacity * 255.0f));
 
-    const bool backdrop = window.SetBackdropEnabled(device.HasComposition());
+    window.SetBackdropEnabled(false);
+
+    // 自绘桌面模糊：窗口背后的桌面由 DesktopBlur 用 DXGI Desktop Duplication 采集，
+    // 这里只把当前窗口矩形（屏幕坐标）交给它——每帧更新，拖动时不会出现拖影；
+    // 桌面没有变化时它内部会跳过截取，开销只有一次非阻塞的状态检查。
+    if (!gPreviewMode && profile_.appearance != 2 && window.CaptureExcluded() &&
+        !IsIconic(window.Hwnd())) {
+        RECT window_rect = {};
+        if (GetWindowRect(window.Hwnd(), &window_rect)) {
+            desktop_blur_.SetLiquidGlass(profile_.appearance == 1);
+            desktop_blur_.RequestCapture(window_rect.left, window_rect.top,
+                                         window_rect.right - window_rect.left,
+                                         window_rect.bottom - window_rect.top);
+        }
+    }
+    const ID3D11ShaderResourceView* backdrop_srv = desktop_blur_.Update();
+    const bool backdrop = !gPreviewMode && window.CaptureExcluded() &&
+                          backdrop_srv != nullptr;
+    ui::shell::BackdropTexture = static_cast<ImTextureID>(
+        reinterpret_cast<std::uintptr_t>(backdrop_srv));
     gpu_.reserved_040 = backdrop ? 1 : 0;
-    ui::shell::GlassEnabled = backdrop;
+    ui::shell::GlassEnabled = backdrop && profile_.appearance != 2;
 
     const unsigned long long tick_ms = GetTickCount64();
     const long long now = static_cast<long long>(_time64(nullptr));

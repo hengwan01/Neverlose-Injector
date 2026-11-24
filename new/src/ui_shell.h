@@ -6,6 +6,8 @@
 namespace nl::ui::shell {
 
 inline bool GlassEnabled = true;
+// 自绘的桌面模糊底板，由 AppFrame 每帧写入；0 表示不可用。
+inline ImTextureID BackdropTexture = 0;
 
 inline const ImVec4 Blue()    { return ImVec4(0.255f, 0.455f, 0.985f, 1.0f); }
 inline const ImVec4 Panel()   { return ImVec4(0.078f, 0.082f, 0.114f, 1.0f); }

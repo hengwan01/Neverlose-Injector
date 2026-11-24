@@ -92,10 +92,7 @@ void FillDisplayedBranch(UiState& state, const nl::data::CheatInfo& cheat,
     const nl::data::BranchInfo* branch = cheat.ActiveBranch();
     state.modal.displayed_branch = "Release";
 
-    if (!branch || branch->build_date == 0)
-        state.modal.displayed_updated = "Never";
-    else
-        state.modal.displayed_updated = FormatClockDate(branch->build_date);
+    state.modal.displayed_updated = FormatClockDate(now);
 
     if (cheat.lifetime) {
         state.modal.displayed_subscription = "Lifetime";
@@ -160,6 +157,14 @@ void DrawDashboard(Theme& theme, UiState& state, const UiGpuResources& gpu,
 
     ImDrawList* draw = ImGui::GetWindowDrawList();
 
+    if (shell::GlassEnabled && shell::BackdropTexture != 0) {
+        draw->AddImageRounded(shell::BackdropTexture, ImVec2(0.0f, 0.0f),
+                              ImVec2(width, height), ImVec2(0.0f, 0.0f),
+                              ImVec2(1.0f, 1.0f),
+                              ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f,
+                                                        opacity)),
+                              17.0f, 0);
+    }
     draw->AddRectFilled(ImVec2(0.0f, 0.0f), ImVec2(width, height),
                         Color(0.145f, 0.153f, 0.212f,
                               (shell::GlassEnabled ? 0.34f : 1.0f) * opacity),
@@ -255,17 +260,15 @@ void DrawDashboard(Theme& theme, UiState& state, const UiGpuResources& gpu,
     const bool api_enabled = transition_done && !state.settings_open;
     ImGui::SetCursorScreenPos(ImVec2(226.0f, 15.0f));
     ImGui::BeginDisabled(!api_enabled);
-    const bool api_pressed =
-        ImGui::InvisibleButton("##ApiDocs", ImVec2(202.0f, 31.0f), 0);
-    if (api_enabled && ImGui::IsItemHovered(0))
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    ImGui::InvisibleButton("##ApiDocs", ImVec2(202.0f, 31.0f), 0);
     ImGui::EndDisabled();
-    if (api_pressed)
-        actions.open_url = L"https://github.com/PbLJk/neverlose-lua-api";
+    const bool api_hovered = api_enabled && ImGui::IsItemHovered(0);
 
     draw->AddText(theme.font_body, 18.5f, ImVec2(226.0f, 21.0f),
-                  Color(theme.text.x, theme.text.y, theme.text.z,
-                        0.86f * opacity * theme.text.w),
+                  api_hovered
+                      ? Color(1.0f, 1.0f, 1.0f, opacity * theme.text.w)
+                      : Color(theme.text.x, theme.text.y, theme.text.z,
+                              0.86f * opacity * theme.text.w),
                   "API Documentation");
 
     ImGui::SetCursorScreenPos(ImVec2(width - 77.0f, 10.0f));

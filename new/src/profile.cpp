@@ -4,6 +4,7 @@
 #include "nlohmann/json.hpp"
 #include "paths.h"
 
+#include <algorithm>
 #include <ctime>
 #include <string_view>
 
@@ -121,6 +122,12 @@ Profile LoadProfile(std::string& error) {
         profile.auto_start = root.value("auto_start", profile.auto_start);
         profile.auto_inject = root.value("auto_inject", profile.auto_inject);
         profile.expires_at = root.value("expires_at", profile.expires_at);
+        // 兼容旧配置：只有布尔开关时，非纯色视为液体玻璃。
+        if (root.contains("appearance"))
+            profile.appearance = static_cast<std::uint8_t>(
+                std::clamp(root.value("appearance", 1), 0, 2));
+        else if (root.value("solid_appearance", false))
+            profile.appearance = 2;
     } catch (...) {
         error = kReadError;
         return Profile();
@@ -162,6 +169,7 @@ bool SaveProfile(const Profile& profile, std::string& error) {
     root["auto_start"] = profile.auto_start;
     root["auto_inject"] = profile.auto_inject;
     root["expires_at"] = profile.expires_at;
+    root["appearance"] = static_cast<int>(profile.appearance);
 
     const std::wstring path = paths::ProfileJson();
     const std::wstring temporary = path + L".tmp";

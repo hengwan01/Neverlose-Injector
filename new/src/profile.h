@@ -18,6 +18,8 @@ struct Profile {
     bool auto_start = true;
     bool auto_inject = true;
     std::int64_t expires_at = 0;
+    // 界面外观：0 = 模糊，1 = 液体玻璃，2 = 纯色。
+    std::uint8_t appearance = 1;
 };
 
 Profile LoadProfile(std::string& error);
@@ -25,7 +27,7 @@ bool SaveProfile(const Profile& profile, std::string& error);
 int RemainingProfileDays(const Profile& profile, long long now);
 void SetProfileDays(Profile& profile, int days, long long now);
 
-static_assert(sizeof(Profile) == 0x58, "Unexpected Profile size");
+static_assert(sizeof(Profile) == 0x60, "Unexpected Profile size");
 static_assert(offsetof(Profile, nickname) == 0x00, "Unexpected nickname offset");
 static_assert(offsetof(Profile, language) == 0x18, "Unexpected language offset");
 static_assert(offsetof(Profile, avatar) == 0x30, "Unexpected avatar offset");

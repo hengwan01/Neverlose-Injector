@@ -22,11 +22,18 @@ set FLAGS=-std=c++20 -O2 -municode -mwindows -Wno-unused-parameter -Wno-microsof
 set LIBS=-ld3d11 -ldxgi -ldwmapi -ldcomp -lwindowscodecs -luser32 -lgdi32 -lshell32 -lole32 -ladvapi32 -lshcore -lcomdlg32 -lwinhttp -lbcrypt
 
 echo Building newnlinjector.exe ...
+set "WINDRES=llvm-windres"
+where llvm-windres >nul 2>nul || set "WINDRES=windres"
+pushd "%SRC%"
+%WINDRES% -i app.rc -o "%ROOT%build_app_res.o"
+popd
+
 clang++ %FLAGS% %DEFS% %INCLUDES% ^
+  "%ROOT%build_app_res.o" ^
   "%SRC%\main.cpp" "%SRC%\app.cpp" "%SRC%\app_window.cpp" "%SRC%\app_device.cpp" ^
   "%SRC%\app_frame.cpp" "%SRC%\ui_shell.cpp" "%SRC%\ui_draw.cpp" ^
   "%SRC%\ui_dashboard.cpp" "%SRC%\ui_modal.cpp" "%SRC%\ui_settings.cpp" ^
-  "%SRC%\gfx_blur.cpp" "%SRC%\texture_loader.cpp" ^
+  "%SRC%\gfx_blur.cpp" "%SRC%\desktop_blur.cpp" "%SRC%\texture_loader.cpp" ^
   "%SRC%\paths.cpp" "%SRC%\data_store.cpp" "%SRC%\profile.cpp" "%SRC%\i18n.cpp" ^
   "%SRC%\remote_payload.cpp" "%SRC%\runtime.cpp" "%SRC%\inject_boundary.cpp" ^
   "%IMGUI%\imgui.cpp" "%IMGUI%\imgui_draw.cpp" "%IMGUI%\imgui_tables.cpp" "%IMGUI%\imgui_widgets.cpp" ^
