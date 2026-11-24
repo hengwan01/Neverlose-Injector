@@ -1,77 +1,91 @@
 # Neverlose Injector
 
-拥有 Neverlose 风格界面与动画的 DLL 注入器加载器。支持将任意 DLL 加密打包进单个 exe，运行时自动启动目标程序并完成注入。
+Neverlose 风格的加载器 / 注入器研究项目，包含两个独立实现：
 
-> 本项目为 Windows 平台 .NET 8 / WPF 技术研究项目，演示了 WPF 动画界面、Win32 进程注入、AES 加密资源、.NET 混淆打包等技术。
+| 目录 | 实现 | 技术栈 |
+|---|---|---|
+| [`old/`](old/) | 初代加载器（WPF 版） | C# / .NET 8 / WPF + C++ Win32 注入器 |
+| [`new/`](new/) | 重建版加载器（原生版） | C++20 / DirectX 11 / Dear ImGui |
+
+两个版本互不依赖，可分别构建、单独运行。仓库只保存源码与资源，**不包含任何 `.exe` / `.dll` 等可执行文件**，发布产物需自行编译。
 
 ---
 
-## 功能特性
+## old/ — WPF 加载器
 
-- **Neverlose 风格 UI**：雨滴玻璃拟态背景、卡片展开启动动画、注入进度动画
-- **双主题**：雨滴玻璃 / 经典深色，支持自定义背景图、背景透明度、卡片透明度
+拥有 Neverlose 风格界面与动画的 DLL 注入器加载器，支持将 DLL 加密打包进单个 exe，运行时自动启动目标程序并完成注入。
+
+- **界面**：雨滴玻璃拟态背景、卡片展开启动动画、注入进度动画，双主题（雨滴玻璃 / 经典深色）
 - **个性化**：可更换挂件、自定义头像（头像文件名自动作为昵称）
-- **一键打包**：双击 `set-dll.bat` 选择 DLL，自动完成 **AES-256 加密 → ConfuserEx 混淆 → 单文件打包**
-- **注入流程**：启动目标程序 → 等待进程 → 内存解密负载 → 调用注入器 → 临时文件即用即删
-- **反分析**：负载以 AES-256-CBC 加密形式嵌入（密钥每次打包随机生成），主程序经 ConfuserEx 混淆（改名 / 字符串加密 / 控制流 / 反 ILDASM）
+- **打包**：AES-256 加密 → ConfuserEx 混淆 → 单文件打包
+- **注入器**：`old/injtrol/` 内的 C++ Win32 注入器（CreateRemoteThread + LoadLibraryW / Manual Map）
 
-## 技术栈
-
-| 组件 | 技术 |
-|---|---|
-| 前端界面 | C# WPF (.NET 8)，纯 XAML 手绘 UI，无第三方 UI 库 |
-| 注入器 | C++ Win32（位于 `injtrol/`，CreateRemoteThread + LoadLibraryW / Manual Map） |
-| 负载保护 | AES-256-CBC（.NET `System.Security.Cryptography`），IV 随文件头 |
-| 代码混淆 | ConfuserEx 1.6（mkaring fork，内置于 `tools/ConfuserEx/`） |
-| 打包 | `dotnet publish` 单文件自包含 + LZ4 压缩，约 77 MB |
-
-## 项目结构
-
-```
-├── App.xaml(.cs)          # 程序入口、全局样式
-├── MainWindow.xaml(.cs)   # 主界面：游戏卡片、注入动画、主题逻辑
-├── GameWindow.xaml(.cs)   # 游戏选择窗口：选择游戏 exe、注入信息
-├── ProfileWindow.xaml(.cs)# 设置窗口：主题、背景图、头像、透明度
-├── PickerWindow.xaml(.cs) # 通用图片选择器（挂件/背景/头像）
-├── AboutWindow.xaml(.cs)  # 关于页
-├── Injector.cs            # 注入器封装：解密负载、调用注入、用后删除
-├── Crypto.cs              # AES-256 解密
-├── CryptoKeys.g.cs        # 【自动生成】密钥文件，不入库
-└── injtrol/               # C++ 注入器（源码 + 编译产物）
-```
-
-## 构建说明
-
-**环境要求**：Windows 10/11 x64 + [.NET 8 SDK](https://dotnet.microsoft.com/download)
+构建（需要 .NET 8 SDK）：
 
 ```powershell
-git clone https://github.com/yry4399/Neverlose-Injector.git
-cd Neverlose-Injector
-
+cd old
 dotnet publish -c Release -r win-x64 --self-contained true `
     -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 ```
 
-> 说明：仓库不包含密钥文件 `CryptoKeys.g.cs` 与负载目录 `cheat/`，
-> 完整的加密打包工具链未随源码公开。仓库代码用于界面与注入流程的学习研究。
+详细说明见 [`old/README.md`](old/README.md)。该版本的密钥文件 `CryptoKeys.g.cs`、负载目录 `cheat/` 与一键打包工具链按要求不入库。
 
-## 使用说明
+---
 
-1. **以管理员身份运行** Loader.exe（打开目标进程需要权限）
-2. 点击游戏卡片（CS:GO / CS2），选择游戏 exe 路径
-3. 点击 ▷ 启动：程序自动启动游戏、等待进程出现并完成注入
-4. 注入成功显示 "loaded!" 后自动退出；失败会显示注入器返回的错误日志
+## new/ — 原生重建版
 
-## 工作原理
+按原版二进制反汇编证据逐项重建的原生加载器：DirectComposition 圆角/透明度、DWM 毛玻璃、ImGui 窗口阴影图集、原版图标与动画曲线均以原版常量为准。
 
-**打包期**：`set-dll.ps1` 生成随机 AES-256 密钥写入 `CryptoKeys.g.cs`，将注入器与所选 DLL 加密为 `cheat\*.dat` 嵌入程序集，然后 ConfuserEx 混淆主程序，最后打成单文件 exe。
+- **渲染**：DirectX 11 + Dear ImGui 1.91.9 WIP，WIC 纹理加载，DirectComposition 合成
+- **页面**：启动 / 连接、Dashboard、游戏启动弹窗、分支与更新日志、设置页
+- **默认配置**：昵称 `Awa Subaru`，默认头像为 `new/assets/default_avatar.jpg`（由 `test.jpg` 缩放压缩得到）
+- **注入边界**：`new/src/inject_boundary.cpp` 保持桩实现，不执行跨进程注入
+- **预览模式**：支持 `--preview --page <页面> --capture <png>` 离屏截图，便于像素级比对
 
-**运行期**：点击启动后，主程序在内存中解密负载，写入 `%TEMP%` 下随机文件名（12 位随机字符），调用注入器对目标进程执行 `CreateRemoteThread + LoadLibraryW`，注入完成后立即删除临时文件。
+构建（需要 LLVM-MinGW 的 `clang++` 在 PATH 中）：
+
+```powershell
+cd new
+.\build.bat
+```
+
+运行要求：`newnlinjector.exe` 需与 `assets/` 目录同级（资源通过模块目录查找）；用户数据默认写入 `%LOCALAPPDATA%\NLLoader`。
+
+常用命令行参数：
+
+| 参数 | 说明 |
+|---|---|
+| `--preview` | 预览模式，不触发实际运行逻辑 |
+| `--page <名称>` | 指定预览页面，如 `connecting`、`profile-hover`、`settings` |
+| `--data-dir <路径>` | 覆盖用户数据目录 |
+| `--capture <路径>` | 渲染稳定后保存 PNG 截图并退出 |
+
+---
+
+## 仓库结构
+
+```
+Neverlose-Injector/
+├── old/                  # 初代 WPF 加载器（C# + injtrol C++ 注入器）
+│   ├── Assets/           # 图标、卡片图、头像
+│   ├── injtrol/          # C++ 注入器源码
+│   ├── *.xaml(.cs)       # 各窗口
+│   └── README.md         # 旧版详细说明
+├── new/                  # 原生重建版（C++20 + ImGui + D3D11）
+│   ├── assets/           # 字体、图标、卡片图、默认头像
+│   ├── src/              # 加载器源码
+│   ├── third_party/      # Dear ImGui
+│   └── build.bat
+├── LICENSE
+└── README.md
+```
+
+---
 
 ## 免责声明与法律声明
 
-- 本项目**仅供学习与技术研究之用**，用于演示 WPF 开发、Win32 API、加解密与 .NET 保护技术，不提供任何作弊功能本体。
-- 本项目中不包含任何游戏作弊代码；`injtrol/` 为通用 DLL 注入器，与游戏无任何耦合。
+- 本项目**仅供学习与技术研究之用**，用于演示 UI 开发、Win32 API、图形渲染、加解密与 .NET 保护技术，不提供任何作弊功能本体。
+- 本项目不包含任何游戏作弊代码；两个加载器均为通用 DLL 注入器外壳，与游戏无任何耦合。
 - 使用本工具向任何第三方程序（包括但不限于受反作弊系统保护的游戏）注入代码，可能违反该程序的**最终用户许可协议与服务条款**，由此产生的一切后果（包括但不限于账号封禁）由**使用者自行承担**，作者概不负责。
 - 本项目与 Valve Corporation、完美世界及任何游戏厂商**无任何关联**；CS:GO、CS2 等名称与商标归其各自所有者所有。
 - 使用者须遵守所在国家/地区的法律法规。**不得**将本项目用于任何非法用途，**不得**用于破坏计算机信息系统或侵犯他人合法权益。

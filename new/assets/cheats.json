@@ -1,0 +1,24 @@
+[
+  {
+    "cheat": "cs2",
+    "name": "Counter-Strike 2",
+    "lifetime": true,
+    "license": 0,
+    "selected_branch": "release",
+    "branches": [
+      {
+        "id": "release",
+        "name": "Release",
+        "version": "3.7.5.61",
+        "build_date": 1795450205,
+        "last_launch": 0,
+        "changelog": [
+          {
+            "date": 1795450205,
+            "changelog": "- Reworked menu and loader.\n- Added GitHub Release updates with package verification.\n- Restyled Manage Extensions and animated script controls.\n- Optimized menu-aware blur for Hotkeys.\n- Reduced duplicate font buffer allocations.\n- Fixed the Back button on loading errors.\n- Fixed update and subscription dates in About.\n- Improved initialization feedback and startup handling.\n- Retained the Release advertising banner."
+          }
+        ]
+      }
+    ]
+  }
+]
